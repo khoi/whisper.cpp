@@ -11,7 +11,34 @@
 #include <thread>
 #include <vector>
 #include <cstring>
+#include <math.h>
 
+// vad settings
+const double MIN_ENERGY = 0.9;
+const double INCREASE_FACTOR = 0.0008;
+const double FRAME_MARGIN = 5;
+
+// vad algorithm support variables
+// TODO struct
+size_t n_frame = 0;
+double emin, emax;
+double delta;
+size_t margin_frame_counter;
+
+double vad(float *buffer, size_t packet_length, size_t n_frame, size_t *mf_counter, double *emin, double *emax, double *delta)
+{
+
+    // calculate energy of current frame (RMSE)
+    double current_energy = 0;
+    for (int i = 0; i < packet_length; i++)
+    {
+        current_energy += pow((double)buffer[i], 2);
+    }
+
+    current_energy = sqrt(current_energy / (double)packet_length);
+    printf("\ncurrent energy: %f\n", current_energy);
+    return current_energy;
+}
 #if defined(_MSC_VER)
 #pragma warning(disable: 4244 4267) // possible loss of data
 #endif
@@ -1080,6 +1107,9 @@ int main(int argc, char ** argv) {
         }
 
         // run the inference
+        double vad_val;
+        vad_val = vad(pcmf32.data(), pcmf32.size(), n_frame++, &margin_frame_counter, &emin, &emax, &delta);
+        if (vad_val > 0.2f)
         {
             whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
 
